@@ -1,1 +1,44 @@
-###
+/*
+  1.2.2
+  Verify that when dynamically building URLs, untrusted data is encoded
+  according to its context (e.g., URL encoding or base64url encoding for query
+  or path parameters). Ensure that only safe URL protocols are permitted (e.g.,
+  disallow javascript: or data:).
+
+*/
+
+//Exemplo seguro
+
+function construirURL(base, parametro) {
+  // Lista de protocolos permitidos - apenas protocolos seguros
+  const protocolosPermitidos = ["http:", "https:"];
+
+  // Codifica o parâmetro para evitar injeções
+  const parametroSeguro = encodeURIComponent(parametro);
+
+  // Monta a URL completa
+  const url = new URL(base);
+  url.searchParams.set("valor", parametroSeguro);
+
+  // Verifica se o protocolo da base é seguro
+  if (!protocolosPermitidos.includes(url.protocol)) {
+    throw new Error("Protocolo de URL não permitido!");
+  }
+
+  return url.toString();
+}
+
+try {
+  const segura = construirURL("https://exemplo.com/pagina", "<script>alert(1)</script>");
+  console.log(segura);
+  // Saída segura: https://exemplo.com/pagina?valor=%3Cscript%3Ealert(1)%3C%2Fscript%3E
+} catch (erro) {
+  console.error(erro.message);
+}
+
+// Exemplo inseguro
+const destino = userInput; // dado não confiável vindo do usuário
+const url = "https://exemplo.com/perfil?usuario=" + destino;
+
+// Usando diretamente no HTML
+document.body.innerHTML = `<a href="${url}">Ver perfil</a>`;
