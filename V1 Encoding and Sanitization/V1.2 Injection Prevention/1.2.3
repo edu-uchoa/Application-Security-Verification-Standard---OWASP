@@ -1,1 +1,40 @@
-###
+/* Verify that output encoding or escaping is used when dynamically building
+JavaScript content (including JSON), to avoid changing the message or
+document structure (to avoid JavaScript and JSON injection).
+ */
+
+//Exemplo inseguro (vulnerável a injeção)
+const userInput = `"); alert('XSS');//`;
+
+// Concatenando direto no JS
+const scriptContent = `const valor = "${userInput}";`;
+console.log(scriptContent);
+
+// Saída gerada:
+// const valor = ""); alert('XSS');//";
+// Isso executaria o alert se inserido no HTML com <script>
+
+//Exemplo seguro com JSON.stringify()
+const userInput = `"); alert('XSS');//`;
+
+// Escapando corretamente usando JSON.stringify
+const safeContent = `const valor = ${JSON.stringify(userInput)};`;
+console.log(safeContent);
+
+// Saída segura:
+// const valor = "\"); alert('XSS');//";
+
+
+//Se você estiver construindo objetos JSON para enviar a front-end:
+
+const data = { usuario: userInput };
+const safeJson = JSON.stringify(data);
+console.log(safeJson);
+// {"usuario":"\"); alert('XSS');//"}
+
+/* O JSON.stringify() em JavaScript converte um valor (objeto, array, string, número, boolean ou null) em uma string JSON válida, escapando automaticamente os caracteres que poderiam quebrar a sintaxe do JSON ou do JavaScript.
+
+-Evita JavaScript injection ao inserir strings do usuário em código JS.
+-Evita JSON injection ao construir objetos JSON dinamicamente.
+-Preserva a estrutura do documento, sem permitir que o usuário quebre o código.
+*/
