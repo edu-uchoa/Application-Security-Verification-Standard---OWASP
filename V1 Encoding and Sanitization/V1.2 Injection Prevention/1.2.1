@@ -1,1 +1,85 @@
-###
+/* Verify that output encoding for an HTTP response, HTML document, or XML
+document is relevant for the context required, such as encoding the relevant
+characters for HTML elements, HTML attributes, HTML comments, CSS, or
+HTTP header fields, to avoid changing the message or document structure.*/
+
+
+//Exemplo de input malicioso
+const userInput = `<script>alert('XSS')</script>`;
+
+//HTML element (conteúdo)
+//Problema: inserir diretamente no innerHTML pode executar código malicioso.
+//Solução: usar textContent.
+
+const div = document.createElement('div');
+div.textContent = userInput; // Escapa automaticamente <, >, &
+document.body.appendChild(div);
+
+//HTML attribute
+//Problema: inserir diretamente no href, title ou outro atributo permite injeção de código.
+//Solução: usar setAttribute() e/ou codificação de atributo.
+
+const link = document.createElement('a');
+link.setAttribute('title', userInput); // Escapa automaticamente caracteres perigosos
+link.textContent = "Clique aqui";
+document.body.appendChild(link);
+
+//HTML comment
+//Problema: inserir --> diretamente pode quebrar o comentário.
+//Solução: escapar sequências perigosas.
+
+const safeComment = userInput.replace(/-->/g, '--\\>'); // Escapa fechamento de comentário
+const comment = document.createComment(safeComment);
+document.body.appendChild(comment);
+
+//CSS
+//Problema: inserir caracteres especiais em estilos inline pode quebrar a folha ou permitir injeção.
+//Solução: usar CSS.escape().
+
+const cssVar = CSS.escape(userInput);
+const style = document.createElement('style');
+style.textContent = `#meuElemento::after { content: "${cssVar}"; }`;
+document.head.appendChild(style);
+
+//JavaScript / JSON
+//Problema: concatenar diretamente em código JS ou JSON pode executar código.
+//Solução: usar JSON.stringify().
+
+const jsonData = { valor: userInput };
+const safeJson = JSON.stringify(jsonData); // Escapa caracteres especiais
+console.log(safeJson); // {"valor":"<script>alert('XSS')</script>"}
+
+//URL / query parameter
+//Problema: inserir diretamente em URLs pode quebrar links ou permitir javascript:.
+//Solução: usar encodeURIComponent().
+
+const url = "https://exemplo.com/perfil?usuario=" + encodeURIComponent(userInput);
+console.log(url); 
+// Saída segura: https://exemplo.com/perfil?usuario=%3Cscript%3Ealert('XSS')%3C/script%3E
+
+//HTTP header (exemplo conceitual em Node.js)
+//Problema: caracteres de nova linha ou inválidos podem quebrar o header e permitir injeção.
+//Solução: remover ou substituir CRLF.
+
+const http = require('http');
+const server = http.createServer((req, res) => {
+    const safeHeader = userInput.replace(/[\r\n]/g, ''); // Remove quebras de linha
+    res.setHeader('X-Custom-Header', safeHeader);
+    res.end('OK');
+});
+server.listen(3000);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
