@@ -1,1 +1,74 @@
-###
+/*   Verify that data selection or database queries (e.g., SQL, HQL, NoSQL,
+Cypher) use parameterized queries, ORMs, entity frameworks, or are
+otherwise protected from SQL Injection and other database injection attacks.
+This is also relevant when writing stored procedures
+
+exemplos mostrando como usar consultas parametrizadas ou ORMs para evitar SQL Injection em diferentes contextos
+*/
+
+
+//Exemplo inseguro (vulnerável a SQL Injection)
+// Dado do usuário
+const username = "' OR '1'='1";
+
+// Montando SQL diretamente (muito perigoso!)
+const sql = `SELECT * FROM usuarios WHERE nome = '${username}'`;
+
+// Resultado da query:
+// SELECT * FROM usuarios WHERE nome = '' OR '1'='1'
+// Isso retorna todos os usuários! SQL Injection ocorre
+
+
+////////////////////////////////////////////////////////////
+
+
+//Exemplo seguro com queries parametrizadas (Node.js + MySQL)
+const mysql = require('mysql2/promise');
+
+async function buscarUsuario(username) {
+  const connection = await mysql.createConnection({ host: 'localhost', user: 'root', database: 'teste' });
+
+  // Query parametrizada: o driver escapa automaticamente os valores
+  const [rows] = await connection.execute(
+    'SELECT * FROM usuarios WHERE nome = ?',
+    [username]
+  );
+
+  console.log(rows);
+}
+
+buscarUsuario("' OR '1'='1"); // Seguro, não executa injeção
+
+
+///////////////////////////////////////////////////////////
+
+
+Exemplo seguro com ORM (Sequelize)
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = new Sequelize('sqlite::memory:');
+
+const Usuario = sequelize.define('Usuario', {
+  nome: DataTypes.STRING
+});
+
+async function buscarUsuarioORM(username) {
+  const usuarios = await Usuario.findAll({
+    where: { nome: username } // O ORM gera SQL parametrizado automaticamente
+  });
+
+  console.log(usuarios);
+}
+
+buscarUsuarioORM("' OR '1'='1"); // Seguro
+
+///////////////////////////////////////////////////////////
+
+
+//Exemplo em Stored Procedure (SQL Server)
+CREATE PROCEDURE BuscarUsuario
+    @nome NVARCHAR(100)
+AS
+BEGIN
+    -- Parametro usado de forma segura
+    SELECT * FROM Usuarios WHERE Nome = @nome;
+END
